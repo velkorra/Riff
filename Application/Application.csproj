@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Riok.Mapperly" Version="4.2.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Riff.Api.Contracts\Riff.Api.Contracts.csproj" />
+      <ProjectReference Include="..\Riff.Infrastructure\Riff.Infrastructure.csproj" />
+    </ItemGroup>
+
+</Project>

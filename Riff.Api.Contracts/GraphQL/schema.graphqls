@@ -1,0 +1,80 @@
+"""
+Represents a user in the system.
+"""
+type User {
+    id: ID!
+    username: String!
+    rooms: [Room!]
+}
+
+"""
+Represents a collaborative music room.
+"""
+type Room {
+    id: ID!
+    name: String!
+    ownerId: ID!
+    createdAt: String!
+    playlist: [Track!]
+    owner: User
+}
+
+"""
+Represents a track in a room's playlist.
+"""
+type Track {
+    id: ID!
+    title: String!
+    artist: String!
+    url: String!
+    durationInSeconds: Int!
+    addedBy: User
+}
+
+"""
+Defines all available queries.
+"""
+type Query {
+    "Retrieves a user by their unique ID."
+    userById(id: ID!): User
+    "Retrieves a room by its unique ID."
+    roomById(id: ID!): Room
+}
+
+"""
+Input for registering a new user.
+"""
+input RegisterUserInput {
+    username: String!
+    password: String!
+}
+
+"""
+Input for creating a new room.
+"""
+input CreateRoomInput {
+    name: String!
+    password: String
+}
+
+"""
+Input for adding a new track to a room.
+"""
+input AddTrackInput {
+    title: String!
+    artist: String!
+    url: String!
+    durationInSeconds: Int!
+}
+
+"""
+Defines all available mutations.
+"""
+type Mutation {
+    "Registers a new user in the system."
+    registerUser(input: RegisterUserInput!): User
+    "Creates a new collaborative room."
+    createRoom(input: CreateRoomInput!): Room
+    "Adds a track to a specific room's playlist."
+    addTrackToRoom(roomId: ID!, input: AddTrackInput!): Track
+}

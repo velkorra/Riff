@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Riff.Api.Contracts.Exceptions;
 
-namespace Riff.ApiGateway;
+namespace Riff.Api;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {
