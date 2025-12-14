@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Riff.Infrastructure.Interfaces;
 
 namespace Riff.Infrastructure.Entities;
 
-public class Track
+public class Track: IAuditable
 {
     [Key]
     public Guid Id { get; set; }
@@ -16,12 +17,14 @@ public class Track
     public string Url { get; set; } = null!;
     
     public int DurationInSeconds { get; set; }
-    
-    public DateTimeOffset AddedAt { get; set; }
-
-    public Guid RoomId { get; set; }
-    public Room Room { get; set; } = null!;
-
+    public int Score { get; set; } = 0;
     public Guid AddedById { get; set; }
     public User AddedBy { get; set; } = null!;
+    public Guid RoomId { get; set; }
+    public Room Room { get; set; } = null!;
+    
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+
+
 }

@@ -1,28 +1,26 @@
-﻿using Application.Services.Interfaces;
-using GraphQL.Types;
 using Riff.Api.Contracts.Dto;
+using Riff.Api.Services.Interfaces;
 
 namespace Riff.Api.GraphQL.Types;
 
-public sealed class UserType : ObjectGraphType<UserResponse>
+public class UserType : ObjectType<UserResponse>
 {
-    public UserType()
+    protected override void Configure(IObjectTypeDescriptor<UserResponse> descriptor)
     {
-        Name = "User";
-        Description = "Represents a user in the system.";
+        descriptor.Name("User");
+        descriptor.Field(f => f.Id).Type<NonNullType<IdType>>();
 
-        Field(u => u.Id, type: typeof(IdGraphType))
-            .Description("The unique ID of the user.");
+        descriptor.Field("rooms")
+            .ResolveWith<UserResolvers>(u => u.GetRoomsAsync(null!, null!));
+    }
 
-        Field(u => u.Username)
-            .Description("The user's display name.");
-
-        Field<ListGraphType<RoomType>>("rooms")
-            .Description("The list of rooms owned by this user.")
-            .ResolveAsync(async context =>
-            {
-                var roomService = context.RequestServices!.GetRequiredService<IRoomService>();
-                return await roomService.GetRoomsByOwnerIdAsync(context.Source.Id);
-            });
+    private class UserResolvers
+    {
+        public async Task<IEnumerable<RoomResponse>> GetRoomsAsync(
+            [Parent] UserResponse user,
+            [Service] IRoomService roomService)
+        {
+            return await roomService.GetRoomsByOwnerIdAsync(user.Id);
+        }
     }
 }

@@ -1,17 +1,24 @@
-using Application.Services;
-using Application.Services.Interfaces;
-using GraphiQl;
-using GraphQL;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Riff.Api;
-using Riff.Api.GraphQL;
+using Riff.Api.Extensions;
+using Riff.Api.GraphQL.Mutations;
+using Riff.Api.GraphQL.Queries;
 using Riff.Api.GraphQL.Types;
-using Riff.Api.GraphQL.Types.Input;
 using Riff.Api.Middleware;
 using Riff.Api.Services;
 using Riff.Api.Services.Interfaces;
 using Riff.Infrastructure;
+using Riff.Infrastructure.Entities;
+using Riff.Infrastructure.Extensions;
+using Scalar.AspNetCore;
+using IRoomService = Riff.Api.Services.Interfaces.IRoomService;
+using ITrackService = Riff.Api.Services.Interfaces.ITrackService;
+using IUserService = Riff.Api.Services.Interfaces.IUserService;
+using RoomService = Riff.Api.Services.RoomService;
+using TrackService = Riff.Api.Services.TrackService;
+using UserService = Riff.Api.Services.UserService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,30 +36,30 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IResourceLinker, ResourceLinker>();
 
-builder.Services.AddSingleton<UserType>();
-builder.Services.AddSingleton<RoomType>();
-builder.Services.AddSingleton<TrackType>();
-builder.Services.AddSingleton<RegisterUserInputType>();
-builder.Services.AddSingleton<CreateRoomInputType>();
-builder.Services.AddSingleton<AddTrackInputType>();
-builder.Services.AddSingleton<AppQuery>();
-builder.Services.AddSingleton<AppMutation>();
-builder.Services.AddSingleton<AppSchema>();
 
-builder.Services.AddGraphQL(b => b
-    .AddSchema<AppSchema>()
-    .ConfigureExecution((opt, next) =>
-    {
-        opt.EnableMetrics = true;
-        return next(opt);
-    })
-    .AddSystemTextJson()
-    .AddErrorInfoProvider(opt => opt.ExposeExceptionDetails = builder.Environment.IsDevelopment()));
+builder.Services
+    .AddGraphQLServer()
+    .AddAuthorization()
+    .AddQueryType<AppQuery>()
+    .AddMutationType<AppMutation>()
+    .AddType<RoomType>()
+    .AddType<TrackType>()
+    .AddType<UserType>();
 
-builder.Services.AddDbContext<RiffContext>(options =>
-    options.UseInMemoryDatabase("RiffDb"));
+builder.Services.AddRiffDbContext();
 
 
+// builder.Services.AddDbContext<RiffContext>(options =>
+//     options.UseInMemoryDatabase("RiffDb"));
+
+builder.Services.AddIdentityApiEndpoints<User>()
+    .AddEntityFrameworkStores<RiffContext>();
+
+builder.Services.AddOpenApiWithSecurityRequirements();
+
+
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -64,7 +71,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 
     options.EnableAnnotations();
-    
+
     options.OperationFilter<InheritAttributesFromInterfacesFilter>();
 });
 
@@ -74,28 +81,29 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
+    if (app.Environment.IsDevelopment())
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Riff API v1");
-        options.RoutePrefix = string.Empty;
-    });
-
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+    }
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
         var context = services.GetRequiredService<RiffContext>();
-
-        DataSeeder.InitializeDatabase(context);
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        await DataSeeder.InitializeDatabase(context, userManager);
     }
 }
 
-app.UseGraphQL<AppSchema>("/graphql");
-app.UseGraphiQl("/graphiql", "/graphql");
 app.UseMiddleware<CorrelationIdLoggingMiddleware>();
 app.UseMiddleware<PerformanceWarningMiddleware>();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGroup("/auth").MapIdentityApi<User>();
+
 app.MapControllers();
+app.MapGraphQL();
 
 app.Run();

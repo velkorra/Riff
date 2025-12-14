@@ -1,42 +1,41 @@
-﻿using Application.Services.Interfaces;
-using GraphQL.Types;
 using Riff.Api.Contracts.Dto;
+using Riff.Api.Services.Interfaces;
 
 namespace Riff.Api.GraphQL.Types;
 
-public sealed class RoomType : ObjectGraphType<RoomResponse>
+public class RoomType : ObjectType<RoomResponse>
 {
-    public RoomType()
+    protected override void Configure(IObjectTypeDescriptor<RoomResponse> descriptor)
     {
-        Name = "Room";
-        Description = "Represents a collaborative music room.";
+        descriptor.Name("Room");
+        descriptor.Description("Represents a collaborative music room.");
 
-        Field(r => r.Id, type: typeof(IdGraphType))
-            .Description("The unique ID of the room.");
+        descriptor.Field(f => f.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(f => f.OwnerId).Type<NonNullType<IdType>>();
 
-        Field(r => r.Name)
-            .Description("The name of the room.");
-
-        Field(r => r.OwnerId, type: typeof(IdGraphType))
-            .Description("The ID of the user who owns the room.");
-
-        Field(r => r.CreatedAt, type: typeof(DateTimeOffsetGraphType))
-            .Description("The date and time the room was created.");
-
-        Field<UserType>("owner")
+        descriptor.Field("owner")
             .Description("The user who owns this room.")
-            .ResolveAsync(async context =>
-            {
-                var userService = context.RequestServices!.GetRequiredService<IUserService>();
-                return await userService.GetByIdAsync(context.Source.OwnerId);
-            });
-            
-        Field<ListGraphType<TrackType>>("playlist")
-            .Description("The list of tracks in this room's playlist.")
-            .ResolveAsync(async context =>
-            {
-                var trackService = context.RequestServices!.GetRequiredService<ITrackService>();
-                return await trackService.GetPlaylistAsync(context.Source.Id);
-            });
+            .ResolveWith<RoomResolvers>(r => r.GetOwnerAsync(null!, null!));
+
+        descriptor.Field("playlist")
+            .Description("The list of tracks in this room.")
+            .ResolveWith<RoomResolvers>(r => r.GetPlaylistAsync(null!, null!));
+    }
+
+    private class RoomResolvers
+    {
+        public async Task<UserResponse> GetOwnerAsync(
+            [Parent] RoomResponse room,
+            [Service] IUserService userService)
+        {
+            return await userService.GetByIdAsync(room.OwnerId);
+        }
+
+        public async Task<IEnumerable<TrackResponse>> GetPlaylistAsync(
+            [Parent] RoomResponse room,
+            [Service] ITrackService trackService)
+        {
+            return await trackService.GetPlaylistAsync(room.Id);
+        }
     }
 }

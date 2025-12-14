@@ -1,5 +1,5 @@
 ﻿using System.Reflection;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.Annotations;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -30,12 +30,12 @@ public class InheritAttributesFromInterfacesFilter : IOperationFilter
                 }
             }
 
-            var responseAttributes = interfaceMethodInfo.GetCustomAttributes<SwaggerResponseAttribute>();
+            var responseAttributes = interfaceMethodInfo.GetCustomAttributes<SwaggerResponseAttribute>().ToList();
             foreach (var attr in responseAttributes)
             {
                 var statusCode = attr.StatusCode.ToString();
 
-                if (operation.Responses.ContainsKey(statusCode)) continue;
+                if (operation.Responses?.ContainsKey(statusCode) ?? false) continue;
 
                 var response = new OpenApiResponse
                 {
@@ -43,8 +43,10 @@ public class InheritAttributesFromInterfacesFilter : IOperationFilter
                 };
 
                 var schema = context.SchemaGenerator.GenerateSchema(attr.Type, context.SchemaRepository);
+                response.Content ??= new Dictionary<string, OpenApiMediaType>();
                 response.Content.Add("application/json", new OpenApiMediaType { Schema = schema });
 
+                operation.Responses ??= new OpenApiResponses();
                 operation.Responses.Add(statusCode, response);
 
                 context.SchemaRepository.TryLookupByType(attr.Type, out _);

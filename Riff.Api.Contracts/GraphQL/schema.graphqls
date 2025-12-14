@@ -1,10 +1,12 @@
+scalar DateTime
+
 """
 Represents a user in the system.
 """
 type User {
     id: ID!
     username: String!
-    rooms: [Room!]
+    rooms: [Room!]!
 }
 
 """
@@ -14,8 +16,8 @@ type Room {
     id: ID!
     name: String!
     ownerId: ID!
-    createdAt: String!
-    playlist: [Track!]
+    createdAt: DateTime!
+    playlist: [Track!]!
     owner: User
 }
 
@@ -28,53 +30,44 @@ type Track {
     artist: String!
     url: String!
     durationInSeconds: Int!
+    score: Int!
+    addedById: ID!
     addedBy: User
 }
 
-"""
-Defines all available queries.
-"""
 type Query {
     "Retrieves a user by their unique ID."
     userById(id: ID!): User
+
+    "Retrieves the currently logged in user profile."
+    me: User
+
     "Retrieves a room by its unique ID."
     roomById(id: ID!): Room
+
+    "Get top tracks globally."
+    topTracks(limit: Int!): [Track!]!
 }
 
-"""
-Input for registering a new user.
-"""
-input RegisterUserInput {
-    username: String!
-    password: String!
-}
-
-"""
-Input for creating a new room.
-"""
-input CreateRoomInput {
+input CreateRoomRequest {
     name: String!
     password: String
 }
 
-"""
-Input for adding a new track to a room.
-"""
-input AddTrackInput {
+input AddTrackRequest {
     title: String!
     artist: String!
     url: String!
     durationInSeconds: Int!
 }
 
-"""
-Defines all available mutations.
-"""
 type Mutation {
-    "Registers a new user in the system."
-    registerUser(input: RegisterUserInput!): User
     "Creates a new collaborative room."
-    createRoom(input: CreateRoomInput!): Room
+    createRoom(input: CreateRoomRequest!): Room
+
     "Adds a track to a specific room's playlist."
-    addTrackToRoom(roomId: ID!, input: AddTrackInput!): Track
+    addTrackToRoom(roomId: ID!, input: AddTrackRequest!): Track
+
+    "Vote for a track. Value must be 1 (like) or -1 (dislike)."
+    vote(trackId: ID!, value: Int!): Boolean!
 }

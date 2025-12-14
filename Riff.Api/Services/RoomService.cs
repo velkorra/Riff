@@ -1,12 +1,12 @@
-﻿using Application.Mappings;
-using Application.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Riff.Api.Contracts.Dto;
 using Riff.Api.Contracts.Exceptions;
+using Riff.Api.Mappings;
+using Riff.Api.Services.Interfaces;
 using Riff.Infrastructure;
 using Riff.Infrastructure.Entities;
 
-namespace Application.Services;
+namespace Riff.Api.Services;
 
 public class RoomService : IRoomService
 {

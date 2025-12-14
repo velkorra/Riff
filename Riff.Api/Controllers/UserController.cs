@@ -1,8 +1,8 @@
-﻿using Application.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Riff.Api.Contracts.Dto;
 using Riff.Api.Contracts.Endpoints;
 using Riff.Api.Services.Interfaces;
+using IUserService = Riff.Api.Services.Interfaces.IUserService;
 
 namespace Riff.Api.Controllers;
 
@@ -17,14 +17,6 @@ public class UsersController : ControllerBase, IUsersApi
     {
         _userService = userService;
         _resourceLinker = resourceLinker;
-    }
-
-    [HttpPost("register", Name = nameof(RegisterUser))]
-    public async Task<ActionResult<UserResponse>> RegisterUser([FromBody] RegisterUserRequest request)
-    {
-        var userDto = await _userService.RegisterAsync(request);
-        var enrichedDto = _resourceLinker.AddLinksToUser(userDto);
-        return CreatedAtAction(nameof(GetUserById), new { id = enrichedDto.Id }, enrichedDto);
     }
 
     [HttpGet("{id:guid}", Name = nameof(GetUserById))]

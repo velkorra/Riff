@@ -39,8 +39,7 @@ public class ResourceLinker : IResourceLinker
     {
         var links = new List<LinkDto>
         {
-            // TODO: Create a dedicated endpoint for getting a single track by its ID.
-            // CreateLink("GetTrackById", new { roomId = track.RoomId, trackId = track.Id }, "self", "GET"),
+            CreateLink(nameof(TracksController.GetTrackById), new { id = track.Id }, "self", "GET"),
             CreateLink(nameof(RoomsController.GetRoomById), new { id = track.RoomId }, "room", "GET"),
             CreateLink(nameof(UsersController.GetUserById), new { id = track.AddedById }, "addedBy", "GET")
         };
@@ -50,7 +49,7 @@ public class ResourceLinker : IResourceLinker
     private LinkDto CreateLink(string endpointName, object? values, string rel, string method)
     {
         var httpContext = _httpContextAccessor.HttpContext!;
-        var href = _linkGenerator.GetUriByName(httpContext, endpointName, values) 
+        var href = _linkGenerator.GetUriByName(httpContext, endpointName, values)
                    ?? throw new InvalidOperationException($"Could not generate URL for endpoint '{endpointName}'.");
         return new LinkDto(href, rel, method);
     }

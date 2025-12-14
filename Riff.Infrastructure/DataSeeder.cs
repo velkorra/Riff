@@ -1,10 +1,11 @@
-﻿using Riff.Infrastructure.Entities;
+﻿using Microsoft.AspNetCore.Identity;
+using Riff.Infrastructure.Entities;
 
 namespace Riff.Infrastructure;
 
 public static class DataSeeder
 {
-    public static void InitializeDatabase(RiffContext context)
+    public static async Task InitializeDatabase(RiffContext context, UserManager<User> userManager)
     {
         if (context.Users.Any())
         {
@@ -13,17 +14,21 @@ public static class DataSeeder
 
         var userGura = new User
         {
-            Id = Guid.Parse("a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6"), 
-            Username = "gura_chan",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("atlantis123")
+            Id = Guid.Parse("a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6"),
+            UserName = "gura_chan",
+            Email = "gura@holo.com",
         };
 
         var userLily = new User
         {
             Id = Guid.Parse("b1c2d3e4-f5a6-b7c8-d9e0-f1a2b3c4d5e6"),
-            Username = "shylily",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("wompwomp_!")
+            UserName = "shylily",
+            Email = "shylily@holo.com",
         };
+
+        await userManager.CreateAsync(userGura, "@123Abc");
+        await userManager.CreateAsync(userLily, "@123Abc");
+
 
         var roomCityPop = new Room
         {
@@ -45,28 +50,31 @@ public static class DataSeeder
 
         var tracks = new List<Track>
         {
-            new() {
+            new()
+            {
                 Id = Guid.NewGuid(),
                 Title = "Plastic Love",
                 Artist = "Mariya Takeuchi",
                 Url = "https://www.youtube.com/watch?v=3bNITQR4Uso",
                 DurationInSeconds = 478,
                 RoomId = roomCityPop.Id,
-                AddedById = userGura.Id, 
-                AddedAt = DateTimeOffset.UtcNow.AddHours(-10)
+                AddedById = userGura.Id,
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-10)
             },
-            new() {
+            new()
+            {
                 Id = Guid.NewGuid(),
                 Title = "Last Summer Whisper",
                 Artist = "Anri",
                 Url = "https://www.youtube.com/watch?v=4p1I2G-kG-M",
                 DurationInSeconds = 309,
                 RoomId = roomCityPop.Id,
-                AddedById = userLily.Id, 
-                AddedAt = DateTimeOffset.UtcNow.AddHours(-9)
+                AddedById = userLily.Id,
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-9)
             },
-            
-            new() {
+
+            new()
+            {
                 Id = Guid.NewGuid(),
                 Title = "Obscure",
                 Artist = "DIR EN GREY",
@@ -74,9 +82,10 @@ public static class DataSeeder
                 DurationInSeconds = 239,
                 RoomId = roomVKei.Id,
                 AddedById = userLily.Id,
-                AddedAt = DateTimeOffset.UtcNow.AddHours(-5)
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-5)
             },
-            new() {
+            new()
+            {
                 Id = Guid.NewGuid(),
                 Title = "Filth in the Beauty",
                 Artist = "The Gazette",
@@ -84,21 +93,22 @@ public static class DataSeeder
                 DurationInSeconds = 312,
                 RoomId = roomVKei.Id,
                 AddedById = userLily.Id,
-                AddedAt = DateTimeOffset.UtcNow.AddHours(-4)
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-4)
             },
-            new() {
+            new()
+            {
                 Id = Guid.NewGuid(),
                 Title = "Beast of Blood",
                 Artist = "Malice Mizer",
                 Url = "https://www.youtube.com/watch?v=x1wgD3bNLqI&list=RDx1wgD3bNLqI",
                 DurationInSeconds = 308,
                 RoomId = roomVKei.Id,
-                AddedById = userGura.Id, 
-                AddedAt = DateTimeOffset.UtcNow.AddHours(-3)
+                AddedById = userGura.Id,
+                CreatedAt = DateTimeOffset.UtcNow.AddHours(-3)
             }
         };
 
-        context.Users.AddRange(userGura, userLily);
+        // context.Users.AddRange(userGura, userLily);
         context.Rooms.AddRange(roomCityPop, roomVKei);
         context.Tracks.AddRange(tracks);
 

@@ -1,6 +1,6 @@
 ﻿using Riff.Api.Contracts.Dto;
 
-namespace Application.Services.Interfaces;
+namespace Riff.Api.Services.Interfaces;
 
 public interface IRoomService
 {

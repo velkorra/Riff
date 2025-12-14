@@ -6,7 +6,8 @@ public record TrackResponse(
     string Artist,
     string Url,
     int DurationInSeconds,
-    DateTimeOffset AddedAt,
+    int Score,
+    DateTimeOffset CreatedAt,
     Guid AddedById,
     Guid RoomId
 )

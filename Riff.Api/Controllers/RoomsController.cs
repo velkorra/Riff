@@ -1,12 +1,16 @@
-﻿using Application.Services.Interfaces;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Riff.Api.Contracts.Dto;
 using Riff.Api.Contracts.Endpoints;
+using Riff.Api.Extensions;
 using Riff.Api.Services.Interfaces;
+using IRoomService = Riff.Api.Services.Interfaces.IRoomService;
+using ITrackService = Riff.Api.Services.Interfaces.ITrackService;
 
 namespace Riff.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/rooms")]
 public class RoomsController : ControllerBase, IRoomsApi
 {
@@ -20,16 +24,15 @@ public class RoomsController : ControllerBase, IRoomsApi
         _trackService = trackService;
         _resourceLinker = resourceLinker;
     }
-    
+
     [HttpPost(Name = nameof(CreateRoom))]
     public async Task<ActionResult<RoomResponse>> CreateRoom([FromBody] CreateRoomRequest request)
     {
-        // TODO: Get OwnerId from authenticated user context 
-        var hardcodedOwnerId = Guid.Parse("a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6");
-        
-        var roomDto = await _roomService.CreateAsync(request, hardcodedOwnerId);
+        var ownerId = User.GetUserId();
+
+        var roomDto = await _roomService.CreateAsync(request, ownerId);
         var enrichedDto = _resourceLinker.AddLinksToRoom(roomDto);
-        
+
         return CreatedAtAction(nameof(GetRoomById), new { id = enrichedDto.Id }, enrichedDto);
     }
 
@@ -52,13 +55,11 @@ public class RoomsController : ControllerBase, IRoomsApi
     [HttpPost("{roomId:guid}/playlist", Name = nameof(AddTrackToRoom))]
     public async Task<ActionResult<TrackResponse>> AddTrackToRoom(Guid roomId, [FromBody] AddTrackRequest request)
     {
-        // TODO: Get UserID from authenticated user context.
-        var hardcodedUserId = Guid.Parse("b1c2d3e4-f5a6-b7c8-d9e0-f1a2b3c4d5e6");
-        
-        var trackDto = await _trackService.AddTrackAsync(roomId, request, hardcodedUserId);
+        var userId = User.GetUserId();
+
+        var trackDto = await _trackService.AddTrackAsync(roomId, request, userId);
         var enrichedDto = _resourceLinker.AddLinksToTrack(trackDto);
 
-        // TODO: Create a dedicated "GetTrackById" endpoint to return a proper CreatedAtAction result.
         return StatusCode(StatusCodes.Status201Created, enrichedDto);
     }
 }

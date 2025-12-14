@@ -1,0 +1,30 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Riff.Api.Contracts.Dto;
+using Riff.Api.Contracts.Exceptions;
+using Riff.Api.Mappings;
+using Riff.Api.Services.Interfaces;
+using Riff.Infrastructure;
+using Riff.Infrastructure.Entities;
+
+namespace Riff.Api.Services;
+
+public class UserService : IUserService
+{
+    private readonly RiffContext _context;
+
+    public UserService(RiffContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<UserResponse> GetByIdAsync(Guid id)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user is null)
+        {
+            throw new ResourceNotFoundException(nameof(User), id);
+        }
+
+        return user.ToDto();
+    }
+}
