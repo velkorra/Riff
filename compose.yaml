@@ -1,0 +1,27 @@
+﻿services:
+  api:
+    image: riff.api
+    build:
+      context: .
+      dockerfile: Riff.Api/Dockerfile
+  db:
+    image: postgres:18
+    container_name: riff-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: riff
+      POSTGRES_PASSWORD: riff
+      POSTGRES_DB: riff
+    ports:
+      - "5432:5432"
+    volumes:
+      - riff_pg_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U riff -d riff" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    
+volumes:
+  riff_pg_data:
+#  riff_rabbit_data:
