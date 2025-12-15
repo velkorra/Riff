@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Routing.TypeBased;
@@ -7,7 +8,8 @@ using Riff.NotificationService.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options => { options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 
 builder.Services.AddCors(options =>
 {

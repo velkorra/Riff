@@ -188,8 +188,7 @@ public class PlaylistGrpcService(
 
         if (pausedTrack == null)
         {
-            await Skip(new PlayerRequest { RoomId = request.RoomId, UserId = request.UserId }, callContext);
-            return new PlayerResponse { Success = false, ErrorMessage = "Nothing to resume" };
+            return await Skip(new PlayerRequest { RoomId = request.RoomId, UserId = request.UserId }, callContext);
         }
 
         pausedTrack.StartedAt = DateTimeOffset.UtcNow.AddSeconds(-pausedTrack.PausedDurationInSeconds);
@@ -248,7 +247,13 @@ public class PlaylistGrpcService(
             nextTrack.Id,
             TimeSpan.FromSeconds(nextTrack.DurationInSeconds)
         );
-
+        
+        await bus.Publish(new PlaybackStateChangedEvent(
+            roomId,
+            nextTrack.Id,
+            TrackStatus.Playing,
+            0
+        ));
 
         return new PlayerResponse { Success = true, Status = "Playing", CurrentTrackId = nextTrack.Id.ToString() };
     }

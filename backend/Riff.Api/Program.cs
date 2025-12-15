@@ -35,7 +35,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IResourceLinker, ResourceLinker>();
 
-builder.Services.AddGrpcClient<Playlist.PlaylistClient>(o => { o.Address = new Uri("http://localhost:5000"); });
+builder.Services.AddGrpcClient<Playlist.PlaylistClient>(o => { o.Address = new Uri("http://localhost:5001"); });
 
 builder.Services
     .AddGraphQLServer()

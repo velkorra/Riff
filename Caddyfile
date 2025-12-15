@@ -1,0 +1,29 @@
+http://riff-dev.local {
+    handle /api/* {
+        reverse_proxy localhost:5000
+    }
+    
+    handle /auth/* {
+        reverse_proxy localhost:5000
+    }
+
+    handle /scalar* {
+        reverse_proxy localhost:5000
+    }
+    
+    handle /openapi* {
+        reverse_proxy localhost:5000
+    }
+    
+    handle /graphql* {
+        reverse_proxy localhost:5000
+    }
+
+    handle /hub* {
+        reverse_proxy localhost:5002
+    }
+
+    handle /* {
+        reverse_proxy localhost:3000
+    }
+}
