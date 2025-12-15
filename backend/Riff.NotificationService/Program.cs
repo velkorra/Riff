@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using OpenTelemetry.Metrics;
 using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Routing.TypeBased;
@@ -21,6 +22,13 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddPrometheusExporter());
+
+var healthChecks = builder.Services.AddHealthChecks();
 
 var rabbitConn = builder.Configuration["RabbitMq:ConnectionString"];
 var queueName = builder.Configuration["RabbitMq:InputQueueName"];
@@ -47,5 +55,8 @@ await bus.Subscribe<TrackAddedEvent>();
 await bus.Subscribe<PlaybackStateChangedEvent>();
 await bus.Subscribe<VoteUpdatedEvent>();
 await bus.Subscribe<TrackRemovedEvent>();
+
+app.MapPrometheusScrapingEndpoint();
+app.MapHealthChecks("/health");
 
 app.Run();

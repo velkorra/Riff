@@ -1,12 +1,11 @@
 http://riff-dev.local {
     handle /api/* {
-        reverse_proxy localhost:5000
+        reverse_proxy api:8080
     }
-    
     handle /auth/* {
-        reverse_proxy localhost:5000
+        reverse_proxy api:8080
     }
-
+   
     handle /scalar* {
         reverse_proxy localhost:5000
     }
@@ -14,16 +13,27 @@ http://riff-dev.local {
     handle /openapi* {
         reverse_proxy localhost:5000
     }
-    
     handle /graphql* {
-        reverse_proxy localhost:5000
+        reverse_proxy api:8080
+    }
+    
+    handle /metrics {
+        reverse_proxy api:8080
     }
 
     handle /hub* {
-        reverse_proxy localhost:5002
+        reverse_proxy notification:8080
     }
 
     handle /* {
-        reverse_proxy localhost:3000
+        reverse_proxy front:80
     }
+}
+
+http://grafana.riff-dev.local {
+    reverse_proxy grafana:3000
+}
+
+http://prom.riff-dev.local {
+    reverse_proxy prometheus:9090
 }

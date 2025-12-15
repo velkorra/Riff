@@ -1,52 +1,135 @@
 ﻿services:
+  front:
+    image: riff.front
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    restart: always
+#    environment:
+#      - VITE_API_URL=http://riff-dev.local 
+    depends_on:
+      - api
+
+  # --- BACKEND API ---
   api:
     image: riff.api
     build:
       context: ./backend
       dockerfile: Riff.Api/Dockerfile
-  front:
-    image: riff.front
-    ports:
-      - "3000:80"
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__default=${CONNECTION_STRING}
+      - PlaylistService__Url=http://playlist:8080
+      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  # --- PLAYLIST SERVICE ---
+  playlist:
+    image: riff.playlist
     build:
-      context: ./front
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: Riff.PlaylistService/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__default=${CONNECTION_STRING}
+      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBIT_USER}
+      - RabbitMq__Password=${RABBIT_PASS}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  notification:
+    image: riff.notification
+    build:
+      context: ./backend
+      dockerfile: Riff.NotificationService/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBIT_USER}
+      - RabbitMq__Password=${RABBIT_PASS}
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+  # --- INFRASTRUCTURE ---
   db:
     image: postgres:18
     container_name: riff-db
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: riff
-      POSTGRES_PASSWORD: riff
-      POSTGRES_DB: riff
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - riff_pg_data:/var/lib/postgresql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U riff -d riff" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: synapse-rabbit
+    container_name: riff-rabbit
     restart: unless-stopped
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
     volumes:
       - riff_rabbit_data:/var/lib/rabbitmq
+
+  # --- OBSERVABILITY ---
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    volumes:
+      - riff_grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin 
+    depends_on:
+      - prometheus
+
   caddy:
     image: caddy:alpine
+    container_name: riff-gateway
+    restart: always
     ports:
       - "80:80"
+      - "15672:15672"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
-    network_mode: host
+    depends_on:
+      - front
+      - api
+      - notification
+      - grafana
+
 volumes:
   riff_pg_data:
   riff_rabbit_data:
+  riff_grafana_data:

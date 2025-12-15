@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using OpenTelemetry.Metrics;
 using Riff.Api;
 using Riff.Api.Contracts.Protos;
 using Riff.Api.Extensions;
@@ -35,8 +36,11 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IResourceLinker, ResourceLinker>();
 
-builder.Services.AddGrpcClient<Playlist.PlaylistClient>(o => { o.Address = new Uri("http://localhost:5001"); });
-
+var playlistUrl = builder.Configuration["PlaylistService:Url"] ?? "http://localhost:5001";
+builder.Services.AddGrpcClient<Playlist.PlaylistClient>(o => 
+{ 
+    o.Address = new Uri(playlistUrl); 
+});
 builder.Services
     .AddGraphQLServer()
     .AddAuthorization()
@@ -48,6 +52,12 @@ builder.Services
 
 builder.Services.AddRiffDbContext();
 
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddPrometheusExporter());
+
+var healthChecks = builder.Services.AddHealthChecks();
 
 // builder.Services.AddDbContext<RiffContext>(options =>
 //     options.UseInMemoryDatabase("RiffDb"));
@@ -93,5 +103,8 @@ app.MapGroup("/auth").MapIdentityApi<User>();
 
 app.MapControllers();
 app.MapGraphQL();
+
+app.MapPrometheusScrapingEndpoint();
+app.MapHealthChecks("/health");
 
 app.Run();
