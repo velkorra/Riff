@@ -8,5 +8,5 @@ public class Vote
     public Guid TrackId { get; set; }
     public Track Track { get; set; } = null!;
 
-    public int Value { get; set; } 
+    public int Value { get; set; }
 }

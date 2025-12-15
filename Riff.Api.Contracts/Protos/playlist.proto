@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+option csharp_namespace = "Riff.Api.Contracts.Protos";
+
+package playlist;
+
+service Playlist {
+  rpc AddTrack (AddTrackRequest) returns (AddTrackResponse);
+  rpc Vote (VoteRequest) returns (VoteResponse);
+  rpc RemoveTrack (RemoveTrackRequest) returns (RemoveTrackResponse);
+  rpc Play (PlayerRequest) returns (PlayerResponse);
+  rpc Pause (PlayerRequest) returns (PlayerResponse);
+  rpc Skip (PlayerRequest) returns (PlayerResponse);
+}
+
+message AddTrackRequest {
+  string room_id = 1;
+  string user_id = 2;
+  string title = 3;
+  string artist = 4;
+  string url = 5;
+  int32 duration_seconds = 6;
+}
+
+message AddTrackResponse {
+  string track_id = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+message VoteRequest {
+  string track_id = 1;
+  string user_id = 2;
+  int32 value = 3;
+}
+
+message VoteResponse {
+  bool success = 1;
+  int32 new_score = 2;
+  string error_message = 3;
+}
+
+message RemoveTrackRequest {
+  string track_id = 1;
+  string user_id = 2;
+}
+
+message RemoveTrackResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message PlayerRequest {
+  string room_id = 1;
+  string user_id = 2;
+}
+
+message PlayerResponse {
+  bool success = 1;
+  string error_message = 2;
+  string current_track_id = 3;
+  string status = 4;
+}

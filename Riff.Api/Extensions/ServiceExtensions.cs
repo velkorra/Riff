@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
+using Riff.Api.Transformers;
 
 namespace Riff.Api.Extensions;
 
@@ -43,7 +44,7 @@ public static class ServiceExtensions
                     };
 
                     document.Security ??= new List<OpenApiSecurityRequirement>();
-
+                    options.AddOperationTransformer<InterfaceMetadataTransformer>();
                     document.Security.Add(requirement);
                     return Task.CompletedTask;
                 });

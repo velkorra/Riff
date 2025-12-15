@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi;
 using Riff.Api;
+using Riff.Api.Contracts.Protos;
 using Riff.Api.Extensions;
 using Riff.Api.GraphQL.Mutations;
 using Riff.Api.GraphQL.Queries;
@@ -36,6 +35,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IResourceLinker, ResourceLinker>();
 
+builder.Services.AddGrpcClient<Playlist.PlaylistClient>(o => { o.Address = new Uri("http://localhost:5000"); });
 
 builder.Services
     .AddGraphQLServer()
@@ -61,19 +61,6 @@ builder.Services.AddOpenApiWithSecurityRequirements();
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Version = "v1",
-        Title = "Riff API",
-        Description = "API for collaborative real-time music service"
-    });
-
-    options.EnableAnnotations();
-
-    options.OperationFilter<InheritAttributesFromInterfacesFilter>();
-});
 
 var app = builder.Build();
 
@@ -86,6 +73,7 @@ if (app.Environment.IsDevelopment())
         app.MapOpenApi();
         app.MapScalarApiReference();
     }
+
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
