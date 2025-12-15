@@ -5,7 +5,6 @@ using Riff.Api.Contracts.Endpoints;
 using Riff.Api.Contracts.Protos;
 using Riff.Api.Extensions;
 using Riff.Api.Services.Interfaces;
-using AddTrackRequest = Riff.Api.Contracts.Dto.AddTrackRequest;
 using IRoomService = Riff.Api.Services.Interfaces.IRoomService;
 using ITrackService = Riff.Api.Services.Interfaces.ITrackService;
 
@@ -48,12 +47,20 @@ public class RoomsController(
         return Ok(enrichedDtos);
     }
 
+    [HttpGet(Name = "GetPublicRooms")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<RoomResponse>>> GetPublicRooms(int limit = 20)
+    {
+        var rooms = await roomService.GetPublicRoomsAsync();
+        return Ok(rooms.Select(resourceLinker.AddLinksToRoom));
+    }
+
     [HttpPost("{roomId:guid}/playlist", Name = nameof(AddTrackToRoom))]
-    public async Task<ActionResult<TrackResponse>> AddTrackToRoom(Guid roomId, [FromBody] Contracts.Dto.AddTrackRequest request)
+    public async Task<ActionResult<TrackResponse>> AddTrackToRoom(Guid roomId,
+        [FromBody] Contracts.Dto.AddTrackRequest request)
     {
         var userId = User.GetUserId();
 
-        // 1. gRPC вызов
         var grpcReq = new Contracts.Protos.AddTrackRequest
         {
             RoomId = roomId.ToString(),
@@ -66,7 +73,7 @@ public class RoomsController(
 
         var reply = await playlistClient.AddTrackAsync(grpcReq);
 
-        if (!reply.Success) 
+        if (!reply.Success)
         {
             return BadRequest(new { Error = reply.ErrorMessage });
         }

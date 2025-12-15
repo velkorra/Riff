@@ -47,6 +47,11 @@ type Query {
 
     "Get top tracks globally."
     topTracks(limit: Int!): [Track!]!
+
+    "Get list of latest public rooms."
+    publicRooms: [Room!]!
+
+    trackById(id: ID!): Track
 }
 
 input CreateRoomRequest {
@@ -70,4 +75,16 @@ type Mutation {
 
     "Vote for a track. Value must be 1 (like) or -1 (dislike)."
     vote(trackId: ID!, value: Int!): Boolean!
+
+    "Starts playback in the room."
+    play(roomId: ID!): Boolean!
+
+    "Pauses playback in the room."
+    pause(roomId: ID!): Boolean!
+
+    "Skips the current track."
+    skip(roomId: ID!): Boolean!
+
+    "Removes a track from the playlist."
+    removeTrack(trackId: ID!): Boolean!
 }

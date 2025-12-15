@@ -20,4 +20,11 @@ public interface ITracksApi
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     Task<IActionResult> VoteForTrack(Guid id, [FromBody] VoteRequest request);
+
+    [EndpointSummary("Delete a track")]
+    [EndpointDescription("Removes a track from the playlist.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    Task<IActionResult> DeleteTrack(Guid id);
 }
