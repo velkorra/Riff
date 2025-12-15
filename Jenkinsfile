@@ -16,7 +16,7 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 echo 'Running mega tests...'
-                sh 'docker run --rm -v $(pwd):/app -w /app/Riff.Tests mcr.microsoft.com/dotnet/sdk:10.0 dotnet test'
+                sh 'dotnet test backend/Riff.Tests/Riff.Tests.csproj'
             }
         }
 
