@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using HotChocolate.Authorization;
 using Riff.Api.Contracts.Dto;
-using Riff.Api.Extensions; // Твой экстеншн
+using Riff.Api.Extensions;
 using Riff.Api.Services.Interfaces;
 
 namespace Riff.Api.GraphQL.Queries;
@@ -40,5 +40,20 @@ public class AppQuery
         [Service] ITrackService trackService)
     {
         return await trackService.GetGlobalTopAsync(limit);
+    }
+
+    [GraphQLDescription("Get list of latest public rooms.")]
+    public async Task<IEnumerable<RoomResponse>> GetPublicRooms(
+        [Service] IRoomService roomService)
+    {
+        return await roomService.GetPublicRoomsAsync();
+    }
+
+    [GraphQLDescription("Retrieves a track by its unique ID.")]
+    public async Task<TrackResponse> GetTrackById(
+        Guid id,
+        [Service] ITrackService trackService)
+    {
+        return await trackService.GetByIdAsync(id);
     }
 }

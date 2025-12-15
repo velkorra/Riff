@@ -4,17 +4,9 @@ using Riff.Api.Services.Interfaces;
 
 namespace Riff.Api.Services;
 
-public class ResourceLinker : IResourceLinker
+public class ResourceLinker(LinkGenerator linkGenerator, IHttpContextAccessor httpContextAccessor)
+    : IResourceLinker
 {
-    private readonly LinkGenerator _linkGenerator;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public ResourceLinker(LinkGenerator linkGenerator, IHttpContextAccessor httpContextAccessor)
-    {
-        _linkGenerator = linkGenerator;
-        _httpContextAccessor = httpContextAccessor;
-    }
-
     public UserResponse AddLinksToUser(UserResponse user)
     {
         var links = new List<LinkDto>
@@ -48,8 +40,8 @@ public class ResourceLinker : IResourceLinker
 
     private LinkDto CreateLink(string endpointName, object? values, string rel, string method)
     {
-        var httpContext = _httpContextAccessor.HttpContext!;
-        var href = _linkGenerator.GetUriByName(httpContext, endpointName, values)
+        var httpContext = httpContextAccessor.HttpContext!;
+        var href = linkGenerator.GetUriByName(httpContext, endpointName, values)
                    ?? throw new InvalidOperationException($"Could not generate URL for endpoint '{endpointName}'.");
         return new LinkDto(href, rel, method);
     }

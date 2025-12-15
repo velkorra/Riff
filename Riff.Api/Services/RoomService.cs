@@ -8,18 +8,11 @@ using Riff.Infrastructure.Entities;
 
 namespace Riff.Api.Services;
 
-public class RoomService : IRoomService
+public class RoomService(RiffContext context) : IRoomService
 {
-    private readonly RiffContext _context;
-
-    public RoomService(RiffContext context)
-    {
-        _context = context;
-    }
-
     public async Task<RoomResponse> CreateAsync(CreateRoomRequest request, Guid ownerId)
     {
-        if (!await _context.Users.AnyAsync(u => u.Id == ownerId))
+        if (!await context.Users.AnyAsync(u => u.Id == ownerId))
         {
             throw new ResourceNotFoundException(nameof(User), ownerId);
         }
@@ -35,15 +28,15 @@ public class RoomService : IRoomService
                 : null
         };
 
-        await _context.Rooms.AddAsync(room);
-        await _context.SaveChangesAsync();
+        await context.Rooms.AddAsync(room);
+        await context.SaveChangesAsync();
         
         return room.ToDto();
     }
 
     public async Task<RoomResponse> GetByIdAsync(Guid id)
     {
-        var room = await _context.Rooms.FindAsync(id);
+        var room = await context.Rooms.FindAsync(id);
         if (room is null)
         {
             throw new ResourceNotFoundException(nameof(Room), id);
@@ -53,9 +46,19 @@ public class RoomService : IRoomService
     
     public async Task<IEnumerable<RoomResponse>> GetRoomsByOwnerIdAsync(Guid ownerId)
     {
-        var rooms = await _context.Rooms
+        var rooms = await context.Rooms
             .Where(r => r.OwnerId == ownerId)
             .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
+        return rooms.ToDto();
+    }
+    
+    public async Task<IEnumerable<RoomResponse>> GetPublicRoomsAsync(int limit = 20)
+    {
+        var rooms = await context.Rooms
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(limit)
             .ToListAsync();
 
         return rooms.ToDto();

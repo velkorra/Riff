@@ -8,18 +8,11 @@ using Riff.Infrastructure.Entities;
 
 namespace Riff.Api.Services;
 
-public class UserService : IUserService
+public class UserService(RiffContext context) : IUserService
 {
-    private readonly RiffContext _context;
-
-    public UserService(RiffContext context)
-    {
-        _context = context;
-    }
-
     public async Task<UserResponse> GetByIdAsync(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await context.Users.FindAsync(id);
         if (user is null)
         {
             throw new ResourceNotFoundException(nameof(User), id);

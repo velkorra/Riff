@@ -4,21 +4,13 @@ using Riff.Api.Contracts.Exceptions;
 
 namespace Riff.Api;
 
-public class GlobalExceptionHandler : IExceptionHandler
+public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IWebHostEnvironment env)
+    : IExceptionHandler
 {
-    private readonly ILogger<GlobalExceptionHandler> _logger;
-    private readonly IWebHostEnvironment _env;
-
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IWebHostEnvironment env)
-    {
-        _logger = logger;
-        _env = env;
-    }
-
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception,
         CancellationToken cancellationToken)
     {
-        _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
+        logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
 
         var problemDetails = exception switch
         {
@@ -30,7 +22,7 @@ public class GlobalExceptionHandler : IExceptionHandler
         httpContext.Response.StatusCode = problemDetails.Status!.Value;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
-        return true; 
+        return true;
     }
 
     private ProblemDetails CreateNotFoundProblemDetails(HttpContext httpContext, ResourceNotFoundException ex)
@@ -40,7 +32,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             Instance = httpContext.Request.Path,
             Status = StatusCodes.Status404NotFound,
             Title = "Not Found",
-            Detail = _env.IsDevelopment() ? ex.ToString() : $"{ex.ResourceName} with id {ex.ResourceId} not found"
+            Detail = env.IsDevelopment() ? ex.ToString() : $"{ex.ResourceName} with id {ex.ResourceId} not found"
         };
 
         return details;
@@ -53,7 +45,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             Instance = httpContext.Request.Path,
             Status = StatusCodes.Status500InternalServerError,
             Title = "Internal Server Error",
-            Detail = _env.IsDevelopment() ? ex.ToString() : "Internal Server Error"
+            Detail = env.IsDevelopment() ? ex.ToString() : "Internal Server Error"
         };
     }
 }

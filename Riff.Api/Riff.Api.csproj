@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.71.0" />
     <PackageReference Include="HotChocolate.AspNetCore" Version="16.0.0-p.10.17" />
     <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="16.0.0-p.10.17" />
     <PackageReference Include="HotChocolate.Data" Version="16.0.0-p.10.17" />
