@@ -1,6 +1,8 @@
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
+using Rebus.Bus;
 using Riff.Api.Contracts.Enums;
+using Riff.Api.Contracts.Messages;
 using Riff.Api.Contracts.Protos;
 using Riff.Infrastructure;
 using Riff.Infrastructure.Entities;
@@ -11,7 +13,8 @@ namespace Riff.PlaylistService.Services;
 public class PlaylistGrpcService(
     RiffContext context,
     PlayerOrchestrator orchestrator,
-    ILogger<PlaylistGrpcService> logger) : Playlist.PlaylistBase
+    ILogger<PlaylistGrpcService> logger,
+    IBus bus) : Playlist.PlaylistBase
 {
     public override async Task<AddTrackResponse> AddTrack(AddTrackRequest request, ServerCallContext context1)
     {
@@ -44,7 +47,14 @@ public class PlaylistGrpcService(
 
             logger.LogInformation("Track {TrackId} added to room {RoomId}", track.Id, roomId);
 
-            // TODO: RabbitMQ Publish (TrackAdded)
+            await bus.Publish(new TrackAddedEvent(
+                track.RoomId, 
+                track.Id, 
+                track.Title, 
+                track.Artist, 
+                track.DurationInSeconds, 
+                track.AddedById.ToString()
+            ));
 
             return new AddTrackResponse { Success = true, TrackId = track.Id.ToString() };
         }
@@ -89,8 +99,12 @@ public class PlaylistGrpcService(
             }
 
             await context.SaveChangesAsync();
-
-            // TODO: RabbitMQ Publish (ScoreUpdated)
+            
+            await bus.Publish(new VoteUpdatedEvent(
+                track.RoomId, 
+                track.Id,
+                track.Score
+            ));
 
             return new VoteResponse { Success = true, NewScore = track.Score };
         }
@@ -125,8 +139,8 @@ public class PlaylistGrpcService(
             context.Tracks.Remove(track);
             await context.SaveChangesAsync();
 
-            // TODO: RabbitMQ Publish (TrackRemoved)
-
+            await bus.Publish(new TrackRemovedEvent(track.RoomId, track.Id));
+            
             return new RemoveTrackResponse { Success = true };
         }
         catch (Exception ex)
@@ -154,7 +168,13 @@ public class PlaylistGrpcService(
 
         await context.SaveChangesAsync();
         orchestrator.CancelTimer(roomId);
-        // TODO: Publish RabbitMQ Event: PlaybackPaused
+       
+        await bus.Publish(new PlaybackStateChangedEvent(
+            currentTrack.RoomId,
+            currentTrack.Id,
+            TrackStatus.Paused,
+            currentTrack.PausedDurationInSeconds
+        ));
 
         return new PlayerResponse { Success = true, Status = "Paused", CurrentTrackId = currentTrack.Id.ToString() };
     }
@@ -177,8 +197,13 @@ public class PlaylistGrpcService(
 
         await context.SaveChangesAsync();
 
-        // TODO: Publish RabbitMQ Event: TrackResumed
-
+        await bus.Publish(new PlaybackStateChangedEvent(
+            pausedTrack.RoomId,
+            pausedTrack.Id,
+            TrackStatus.Playing,
+            pausedTrack.PausedDurationInSeconds 
+        ));
+        
         var remainingSeconds = pausedTrack.DurationInSeconds - pausedTrack.PausedDurationInSeconds;
 
         orchestrator.ScheduleNextTrack(

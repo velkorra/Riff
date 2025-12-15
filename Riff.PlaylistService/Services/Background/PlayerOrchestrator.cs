@@ -1,11 +1,16 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Rebus.Bus;
 using Riff.Api.Contracts.Enums;
+using Riff.Api.Contracts.Messages;
 using Riff.Infrastructure;
 
 namespace Riff.PlaylistService.Services.Background;
 
-public class PlayerOrchestrator(IServiceScopeFactory scopeFactory, ILogger<PlayerOrchestrator> logger)
+public class PlayerOrchestrator(
+    IServiceScopeFactory scopeFactory,
+    ILogger<PlayerOrchestrator> logger,
+    IBus _bus)
 {
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _activeTimers = new();
 
@@ -70,11 +75,24 @@ public class PlayerOrchestrator(IServiceScopeFactory scopeFactory, ILogger<Playe
 
             await context.SaveChangesAsync();
 
+            await _bus.Publish(new PlaybackStateChangedEvent(
+                roomId,
+                nextTrack.Id,
+                TrackStatus.Playing,
+                0
+            ));
+
             ScheduleNextTrack(roomId, nextTrack.Id, TimeSpan.FromSeconds(nextTrack.DurationInSeconds));
         }
         else
         {
             await context.SaveChangesAsync();
+            await _bus.Publish(new PlaybackStateChangedEvent(
+                roomId,
+                null,
+                TrackStatus.Paused,
+                0
+            ));
             logger.LogInformation($"[Timer] Playlist for room {roomId} has ended.");
         }
     }
