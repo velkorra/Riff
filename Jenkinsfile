@@ -33,7 +33,7 @@ pipeline {
         stage('Deploy (Restart)') {
             steps {
                 echo 'Deploying application services...'
-                sh 'docker-compose -f compose.yaml up -d --build api playlist notification'
+                sh 'docker-compose -f compose.yaml up -d --build api playlist notification front'
             }
         }
     }
