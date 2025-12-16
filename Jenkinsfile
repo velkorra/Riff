@@ -19,12 +19,9 @@ pipeline {
             steps {
                 echo 'Running unit tests in AMD64 container via Rosetta...'
                 
-                sh """
-                    docker run --rm --platform linux/amd64 \
-                    -v "${HOST_WORKSPACE}":/app \
-                    -w /app/backend/Riff.Tests \
-                    mcr.microsoft.com/dotnet/sdk:10.0 dotnet test
-                """
+                sh 'docker build -t riff-test-runner -f backend/Riff.Tests/Dockerfile .'
+
+                sh 'docker run --rm riff-test-runner'
             }
         }
 
