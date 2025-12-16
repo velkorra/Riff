@@ -26,7 +26,7 @@ pipeline {
         stage('Build Images') {
             steps {
                 echo 'Building application Docker images...'
-                sh 'docker-compose -f compose.yaml build api playlist notification'
+                sh 'docker-compose -f compose.yaml build api playlist notification front'
             }
         }
 
