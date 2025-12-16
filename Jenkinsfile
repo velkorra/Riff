@@ -32,8 +32,29 @@ pipeline {
 
         stage('Deploy (Restart)') {
             steps {
-                echo 'Deploying application services...'
-                sh 'docker-compose -f compose.yaml up -d --build --no-deps api playlist notification front'
+                script {
+                    echo 'Force creating .env file...'
+                    
+                    sh '''
+                        echo "POSTGRES_USER=riff" > .env
+                        echo "POSTGRES_PASSWORD=riff" >> .env
+                        echo "POSTGRES_DB=riff" >> .env
+                        
+                        echo "RABBIT_USER=guest" >> .env
+                        echo "RABBIT_PASS=guest" >> .env
+                        
+                        echo "POSTGRES_PORT=5432" >> .env
+                        echo "RABBIT_UI_PORT=15672" >> .env
+                        echo "GRAFANA_PORT=3000" >> .env
+                        echo "PROMETHEUS_PORT=9090" >> .env
+                        
+                        echo "CONNECTION_STRING=Host=db;Database=riff;Username=riff;Password=riff" >> .env
+                        echo "RABBIT_CONN_STRING=amqp://guest:guest@rabbitmq" >> .env
+                    '''
+                    
+                    echo 'Deploying application services...'
+                    sh 'docker-compose -f compose.yaml up -d --build --no-deps api playlist notification front'
+                }
             }
         }
     }
