@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        COMPOSE_FILE = 'compose.yaml'
+        COMPOSE_FILE = 'compose.exam.yaml'
         COMPOSE_PROJECT_NAME = 'riff'
     }
 

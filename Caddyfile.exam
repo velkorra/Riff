@@ -1,0 +1,36 @@
+# --- App Gateway ---
+http://riff.local.hakurei.dev, http://localhost:80 {
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+    handle /auth/* {
+        reverse_proxy api:8080
+    }
+    handle /scalar* {
+        reverse_proxy localhost:5000
+    }
+    handle /openapi* {
+        reverse_proxy localhost:5000
+    }
+    handle /graphql* {
+        reverse_proxy api:8080
+    }
+    handle /metrics {
+        reverse_proxy api:8080
+    }
+    handle /hub* {
+        reverse_proxy notification:8080
+    }
+    handle /* {
+        reverse_proxy front:80
+    }
+}
+
+# --- Infrastructure ---
+http://grafana.local.hakurei.dev {
+    reverse_proxy grafana:3000
+}
+
+http://prom.local.hakurei.dev {
+    reverse_proxy prometheus:9090
+}

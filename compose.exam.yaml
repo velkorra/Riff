@@ -1,0 +1,164 @@
+services:
+  # --- INFRASTRUCTURE (Base) ---
+  db:
+    image: postgres:18
+    container_name: riff-db
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - riff_pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: riff-rabbit
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
+    volumes:
+      - riff_rabbit_data:/var/lib/rabbitmq
+    ports:
+      - "${RABBIT_UI_PORT}:15672"
+
+  # --- CI/CD ---
+  gitea:
+    image: gitea/gitea:latest
+    container_name: riff-gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    restart: always
+    volumes:
+      - gitea_data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3001:3000"
+      - "2222:22"
+
+  jenkins:
+    build:
+      context: ./ci
+      dockerfile: Dockerfile
+    container_name: riff-jenkins
+    restart: always
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+
+  # --- OBSERVABILITY & ROUTING ---
+  prometheus:
+    build:
+      context: .
+      dockerfile: Dockerfile.prom
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    volumes:
+      - riff_grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: riff-gateway
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - front
+      - api
+      - notification
+      - grafana
+
+  # --- APPS (Managed by Jenkins usually, but here for initial context) ---
+  front:
+    image: riff.front
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - api
+
+  api:
+    image: riff.api
+    build:
+      context: ./backend
+      dockerfile: Riff.Api/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__default=${CONNECTION_STRING}
+      - PlaylistService__Url=http://playlist:8080
+      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  playlist:
+    image: riff.playlist
+    build:
+      context: ./backend
+      dockerfile: Riff.PlaylistService/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__default=${CONNECTION_STRING}
+      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBIT_USER}
+      - RabbitMq__Password=${RABBIT_PASS}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  notification:
+    image: riff.notification
+    build:
+      context: ./backend
+      dockerfile: Riff.NotificationService/Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBIT_USER}
+      - RabbitMq__Password=${RABBIT_PASS}
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+volumes:
+  riff_pg_data:
+  riff_rabbit_data:
+  riff_grafana_data:
+  gitea_data:
+  jenkins_home:
