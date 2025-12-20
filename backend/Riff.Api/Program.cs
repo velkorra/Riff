@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
 using Riff.Api;
 using Riff.Api.Contracts.Protos;
@@ -88,6 +89,7 @@ if (app.Environment.IsDevelopment())
     {
         var services = scope.ServiceProvider;
         var context = services.GetRequiredService<RiffContext>();
+        await context.Database.MigrateAsync();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         await DataSeeder.InitializeDatabase(context, userManager);
     }
