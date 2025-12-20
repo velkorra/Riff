@@ -20,9 +20,9 @@ docker-compose -f compose.exam.yaml up -d --build
 echo.
 echo ========================================================
 echo SYSTEM IS READY!
-echo App:      http://riff.local.hakurei.dev
-echo Grafana:  http://grafana.local.hakurei.dev
-echo Jenkins:  http://localhost:8080
+echo App:      http://localhost:80/login
+echo Grafana:  http://localhost:3000
+echo Jenkins:  http://localhost:8088
 echo Gitea:    http://localhost:3001
 echo ========================================================
 pause
