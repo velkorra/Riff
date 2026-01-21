@@ -34,6 +34,11 @@ http://grafana.riff-dev.local {
     reverse_proxy grafana:3000
 }
 
+http://auth.riff-dev.local {
+    reverse_proxy identity:8080
+}
+
+
 http://prom.riff-dev.local {
     reverse_proxy prometheus:9090
 }

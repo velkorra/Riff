@@ -1,31 +1,70 @@
-using OpenTelemetry.Metrics;
 using Riff.Infrastructure.Extensions;
-using Riff.PlaylistService.Extensions;
 using Riff.PlaylistService.Services;
 using Riff.PlaylistService.Services.Background;
+using Serilog;
+using Serilog.Events;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-builder.Services.AddGrpc();
-builder.Services.AddRiffDbContext();
-builder.Services.AddSingleton<PlayerOrchestrator>();
-builder.Services.AddHostedService<StartupStateRestorer>();
-builder.Services.AddRiffMessaging(builder.Configuration);
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenTelemetry()
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddPrometheusExporter());
+    builder.Host.UseRiffLogger();
 
-var healthChecks = builder.Services.AddHealthChecks();
+    builder.Services.AddGrpc();
+    builder.Services.AddRiffDbContext();
+    builder.Services.AddSingleton<PlayerOrchestrator>();
+    builder.Services.AddHostedService<StartupStateRestorer>();
+    builder.Services.AddRiffEasyNetQ(builder.Configuration);
 
-var app = builder.Build();
+    builder.Services.AddRiffObservability(builder.Configuration, "Riff.Playlist");
 
-app.MapGrpcService<PlaylistGrpcService>();
+    var healthChecks = builder.Services.AddHealthChecks();
 
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
+    var app = builder.Build();
 
-app.MapPrometheusScrapingEndpoint();
-app.MapHealthChecks("/health");
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.GetLevel = (httpContext, elapsed, ex) =>
+        {
+            if (ex != null || httpContext.Response.StatusCode >= 500)
+                return LogEventLevel.Error;
 
-app.Run();
+            if (httpContext.Request.Path == "/health" ||
+                httpContext.Request.Path == "/ready" ||
+                httpContext.Request.Path == "/metrics")
+                return LogEventLevel.Verbose;
+
+            return LogEventLevel.Information;
+        };
+
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            var user = httpContext.User.Identity?.Name;
+            if (!string.IsNullOrEmpty(user))
+            {
+                diagnosticContext.Set("UserName", user);
+            }
+        };
+    });
+
+    app.MapGrpcService<PlaylistGrpcService>();
+
+    app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
+
+    app.MapPrometheusScrapingEndpoint();
+    app.MapHealthChecks("/health");
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
