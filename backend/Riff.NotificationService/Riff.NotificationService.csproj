@@ -8,16 +8,16 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="EasyNetQ" Version="8.1.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.14.0-beta.1" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
-        <PackageReference Include="Rebus.RabbitMq" Version="10.1.0" />
-        <PackageReference Include="Rebus.ServiceProvider" Version="10.7.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Riff.Api.Contracts\Riff.Api.Contracts.csproj" />
+      <ProjectReference Include="..\Riff.Infrastructure\Riff.Infrastructure.csproj" />
     </ItemGroup>
 
     <ItemGroup>

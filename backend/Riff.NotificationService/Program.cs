@@ -1,62 +1,98 @@
 using System.Text.Json.Serialization;
-using OpenTelemetry.Metrics;
-using Rebus.Bus;
-using Rebus.Config;
-using Rebus.Routing.TypeBased;
+using EasyNetQ;
 using Riff.Api.Contracts.Messages;
+using Riff.Infrastructure.Extensions;
+using Riff.NotificationService.Extensions;
 using Riff.NotificationService.Handlers;
 using Riff.NotificationService.Hubs;
+using Riff.NotificationService.Services.Background;
+using Serilog;
+using Serilog.Events;
 
-var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSignalR()
-    .AddJsonProtocol(options => { options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-builder.Services.AddCors(options =>
+try
 {
-    options.AddDefaultPolicy(policy =>
+    var builder = WebApplication.CreateBuilder(args);
+
+    builder.Host.UseRiffLogger();
+
+    builder.Services.AddSignalR()
+        .AddJsonProtocol(options =>
+        {
+            options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
+
+    builder.Services.AddCors(options =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
     });
-});
 
-builder.Services.AddOpenTelemetry()
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddPrometheusExporter());
+    builder.Services.AddRiffObservability(builder.Configuration, "Riff.Notification");
 
-var healthChecks = builder.Services.AddHealthChecks();
+    builder.Services.AddRiffEasyNetQ(builder.Configuration);
+    builder.Services.AddHostedService<NotificationSubscriber>();
 
-var rabbitConn = builder.Configuration["RabbitMq:ConnectionString"];
-var queueName = builder.Configuration["RabbitMq:InputQueueName"];
+    builder.Services.AddScoped<TrackAddedHandler>();
+    builder.Services.AddScoped<VoteUpdatedHandler>();
+    builder.Services.AddScoped<PlaybackStateHandler>();
+    builder.Services.AddScoped<TrackRemovedHandler>();
 
-builder.Services.AddRebus(configure => configure
-    .Logging(l => l.Console())
-    .Transport(t => t.UseRabbitMq(rabbitConn, queueName))
-    .Routing(r => { r.TypeBased().MapAssemblyOf<TrackAddedEvent>("riff.playlist.service"); })
-);
+    var healthChecks = builder.Services.AddHealthChecks();
 
-builder.Services.AutoRegisterHandlersFromAssemblyOf<TrackAddedHandler>();
+    var app = builder.Build();
 
-var app = builder.Build();
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.GetLevel = (httpContext, elapsed, ex) =>
+        {
+            if (ex != null || httpContext.Response.StatusCode >= 500)
+                return LogEventLevel.Error;
 
-app.UseCors();
+            if (httpContext.Request.Path == "/health" ||
+                httpContext.Request.Path == "/ready" ||
+                httpContext.Request.Path == "/metrics")
+                return LogEventLevel.Verbose;
 
-app.MapHub<RiffHub>("/hub");
+            return LogEventLevel.Information;
+        };
 
-app.MapGet("/", () => "Riff Notification Service (SignalR + Rebus)");
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            var user = httpContext.User.Identity?.Name;
+            if (!string.IsNullOrEmpty(user))
+            {
+                diagnosticContext.Set("UserName", user);
+            }
+        };
+    });
 
-var bus = app.Services.GetRequiredService<IBus>();
+    app.UseCors();
 
-await bus.Subscribe<TrackAddedEvent>();
-await bus.Subscribe<PlaybackStateChangedEvent>();
-await bus.Subscribe<VoteUpdatedEvent>();
-await bus.Subscribe<TrackRemovedEvent>();
+    app.MapHub<RiffHub>("/hub");
 
-app.MapPrometheusScrapingEndpoint();
-app.MapHealthChecks("/health");
+    app.MapGet("/", () => "Riff Notification Service (SignalR + EasyNetQ)");
 
-app.Run();
+
+    app.MapPrometheusScrapingEndpoint();
+    app.MapHealthChecks("/health");
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}

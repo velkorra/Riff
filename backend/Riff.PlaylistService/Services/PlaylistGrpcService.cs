@@ -1,11 +1,11 @@
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
-using Rebus.Bus;
 using Riff.Api.Contracts.Enums;
 using Riff.Api.Contracts.Messages;
 using Riff.Api.Contracts.Protos;
 using Riff.Infrastructure;
 using Riff.Infrastructure.Entities;
+using Riff.Infrastructure.Messaging;
 using Riff.PlaylistService.Services.Background;
 
 namespace Riff.PlaylistService.Services;
@@ -14,7 +14,7 @@ public class PlaylistGrpcService(
     RiffContext context,
     PlayerOrchestrator orchestrator,
     ILogger<PlaylistGrpcService> logger,
-    IBus bus) : Playlist.PlaylistBase
+    IEventBus bus) : Playlist.PlaylistBase
 {
     public override async Task<AddTrackResponse> AddTrack(AddTrackRequest request, ServerCallContext context1)
     {
@@ -47,7 +47,7 @@ public class PlaylistGrpcService(
 
             logger.LogInformation("Track {TrackId} added to room {RoomId}", track.Id, roomId);
 
-            await bus.Publish(new TrackAddedEvent(
+            await bus.PublishAsync(new TrackAddedEvent(
                 track.RoomId, 
                 track.Id, 
                 track.Title, 
@@ -100,7 +100,7 @@ public class PlaylistGrpcService(
 
             await context.SaveChangesAsync();
             
-            await bus.Publish(new VoteUpdatedEvent(
+            await bus.PublishAsync(new VoteUpdatedEvent(
                 track.RoomId, 
                 track.Id,
                 track.Score
@@ -139,7 +139,7 @@ public class PlaylistGrpcService(
             context.Tracks.Remove(track);
             await context.SaveChangesAsync();
 
-            await bus.Publish(new TrackRemovedEvent(track.RoomId, track.Id));
+            await bus.PublishAsync(new TrackRemovedEvent(track.RoomId, track.Id));
             
             return new RemoveTrackResponse { Success = true };
         }
@@ -169,7 +169,7 @@ public class PlaylistGrpcService(
         await context.SaveChangesAsync();
         orchestrator.CancelTimer(roomId);
        
-        await bus.Publish(new PlaybackStateChangedEvent(
+        await bus.PublishAsync(new PlaybackStateChangedEvent(
             currentTrack.RoomId,
             currentTrack.Id,
             TrackStatus.Paused,
@@ -196,7 +196,7 @@ public class PlaylistGrpcService(
 
         await context.SaveChangesAsync();
 
-        await bus.Publish(new PlaybackStateChangedEvent(
+        await bus.PublishAsync(new PlaybackStateChangedEvent(
             pausedTrack.RoomId,
             pausedTrack.Id,
             TrackStatus.Playing,
@@ -248,7 +248,7 @@ public class PlaylistGrpcService(
             TimeSpan.FromSeconds(nextTrack.DurationInSeconds)
         );
         
-        await bus.Publish(new PlaybackStateChangedEvent(
+        await bus.PublishAsync(new PlaybackStateChangedEvent(
             roomId,
             nextTrack.Id,
             TrackStatus.Playing,

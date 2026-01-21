@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
+using EasyNetQ;
 using Microsoft.EntityFrameworkCore;
-using Rebus.Bus;
 using Riff.Api.Contracts.Enums;
 using Riff.Api.Contracts.Messages;
 using Riff.Infrastructure;
@@ -10,7 +10,7 @@ namespace Riff.PlaylistService.Services.Background;
 public class PlayerOrchestrator(
     IServiceScopeFactory scopeFactory,
     ILogger<PlayerOrchestrator> logger,
-    IBus _bus)
+    IBus bus)
 {
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _activeTimers = new();
 
@@ -22,7 +22,7 @@ public class PlayerOrchestrator(
         _activeTimers[roomId] = cts;
 
         logger.LogInformation(
-            $"[Timer] Started timer for room {roomId}. Track {trackId} will finish in {delay.TotalSeconds} seconds.");
+            "[Timer] Started timer for room {RoomId}. Track {TrackId} will finish in {DelayTotalSeconds} seconds.", roomId, trackId, delay.TotalSeconds);
 
         _ = Task.Run(async () =>
         {
@@ -75,7 +75,7 @@ public class PlayerOrchestrator(
 
             await context.SaveChangesAsync();
 
-            await _bus.Publish(new PlaybackStateChangedEvent(
+            await bus.PubSub.PublishAsync(new PlaybackStateChangedEvent(
                 roomId,
                 nextTrack.Id,
                 TrackStatus.Playing,
@@ -87,7 +87,7 @@ public class PlayerOrchestrator(
         else
         {
             await context.SaveChangesAsync();
-            await _bus.Publish(new PlaybackStateChangedEvent(
+            await bus.PubSub.PublishAsync(new PlaybackStateChangedEvent(
                 roomId,
                 null,
                 TrackStatus.Paused,

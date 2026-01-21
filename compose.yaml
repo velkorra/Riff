@@ -1,12 +1,13 @@
 ﻿services:
+  # --- FRONTEND ---
   front:
     image: riff.front
     build:
       context: ./front
       dockerfile: Dockerfile
     restart: always
-#    environment:
-#      - VITE_API_URL=http://riff-dev.local 
+    ports:
+      - "3000:80"
     depends_on:
       - api
 
@@ -17,16 +18,27 @@
       context: ./backend
       dockerfile: Riff.Api/Dockerfile
     restart: always
+    ports:
+      - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      #- ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__default=${CONNECTION_STRING}
+      - ConnectionStrings__default=Host=db;Port=5432;Database=riff;Username=riff;Password=riff
       - PlaylistService__Url=http://playlist:8080
-      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=guest
+      - RabbitMq__Password=guest
+      - RabbitMq__QueueName=riff.api
+    extra_hosts:
+      - "auth.local.oshideck.app:host-gateway"
+      - "riff.local.oshideck.app:host-gateway"
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      aspire-dashboard:
         condition: service_started
 
   # --- PLAYLIST SERVICE ---
@@ -37,17 +49,20 @@
       dockerfile: Riff.PlaylistService/Dockerfile
     restart: always
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      #- ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__default=${CONNECTION_STRING}
-      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
+      - ConnectionStrings__default=Host=db;Port=5432;Database=riff;Username=riff;Password=riff
       - RabbitMq__Host=rabbitmq
-      - RabbitMq__Username=${RABBIT_USER}
-      - RabbitMq__Password=${RABBIT_PASS}
+      - RabbitMq__Username=guest
+      - RabbitMq__Password=guest
+      - RabbitMq__QueueName=riff.playlist
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      aspire-dashboard:
         condition: service_started
 
   notification:
@@ -56,45 +71,75 @@
       context: ./backend
       dockerfile: Riff.NotificationService/Dockerfile
     restart: always
+    ports:
+      - "8083:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      #- ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - RabbitMq__ConnectionString=${RABBIT_CONN_STRING}
       - RabbitMq__Host=rabbitmq
-      - RabbitMq__Username=${RABBIT_USER}
-      - RabbitMq__Password=${RABBIT_PASS}
+      - RabbitMq__Username=guest
+      - RabbitMq__Password=guest
+      - RabbitMq__QueueName=riff.notification
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      aspire-dashboard:
         condition: service_started
+  
+  identity:
+    image: riff.identity
+    build:
+      context: ./backend
+      dockerfile: Riff.Identity/Dockerfile
+    restart: always
+    ports:
+      - "5005:8080"
+    environment:
+      #- ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__default=Host=db;Port=5432;Database=riff;Username=riff;Password=riff
+    depends_on:
+      db:
+        condition: service_healthy
 
   # --- INFRASTRUCTURE ---
+  
   db:
     image: postgres:18
     container_name: riff-db
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT}:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: riff
+      POSTGRES_PASSWORD: riff
+      POSTGRES_DB: riff
     volumes:
       - riff_pg_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U riff -d riff"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # 2. RabbitMQ
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3-management-alpine
     container_name: riff-rabbit
     restart: unless-stopped
+    ports:
+      - "5672:5672"  
+      - "15672:15672" 
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     volumes:
       - riff_rabbit_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # --- OBSERVABILITY ---
   prometheus:
@@ -103,6 +148,8 @@
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
 
   grafana:
     image: grafana/grafana:latest
@@ -110,24 +157,32 @@
     volumes:
       - riff_grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin 
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3001:3000"
     depends_on:
       - prometheus
 
-  caddy:
-    image: caddy:alpine
-    container_name: riff-gateway
-    restart: always
+#  caddy:
+#    image: caddy:alpine
+#    container_name: riff-gateway
+#    restart: always
+#    ports:
+#      - "80:80"
+#    volumes:
+#      - ./Caddyfile:/etc/caddy/Caddyfile
+#    depends_on:
+#      - front
+#      - api
+#      - notification
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: aspire-dashboard
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
     ports:
-      - "80:80"
-      - "15672:15672"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-    depends_on:
-      - front
-      - api
-      - notification
-      - grafana
+      - "18888:18888" 
+      - "4317:18889"
 
 volumes:
   riff_pg_data:

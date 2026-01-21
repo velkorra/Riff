@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.SignalR;
-using Rebus.Handlers;
 using Riff.Api.Contracts.Messages;
 using Riff.NotificationService.Hubs;
 
 namespace Riff.NotificationService.Handlers;
 
 public class TrackAddedHandler(IHubContext<RiffHub> hub, ILogger<TrackAddedHandler> logger)
-    : IHandleMessages<TrackAddedEvent>
+    : IEventHandler<TrackAddedEvent>
 {
     public async Task Handle(TrackAddedEvent message)
     {
@@ -18,7 +17,7 @@ public class TrackAddedHandler(IHubContext<RiffHub> hub, ILogger<TrackAddedHandl
 }
 
 public class PlaybackStateHandler(IHubContext<RiffHub> hub, ILogger<PlaybackStateHandler> logger)
-    : IHandleMessages<PlaybackStateChangedEvent>
+    : IEventHandler<PlaybackStateChangedEvent>
 {
     public async Task Handle(PlaybackStateChangedEvent message)
     {
@@ -31,7 +30,7 @@ public class PlaybackStateHandler(IHubContext<RiffHub> hub, ILogger<PlaybackStat
 }
 
 public class VoteUpdatedHandler(IHubContext<RiffHub> hub, ILogger<VoteUpdatedHandler> logger)
-    : IHandleMessages<VoteUpdatedEvent>
+    : IEventHandler<VoteUpdatedEvent>
 {
     public async Task Handle(VoteUpdatedEvent message)
     {
@@ -44,7 +43,7 @@ public class VoteUpdatedHandler(IHubContext<RiffHub> hub, ILogger<VoteUpdatedHan
 }
 
 public class TrackRemovedHandler(IHubContext<RiffHub> hub, ILogger<TrackRemovedHandler> logger)
-    : IHandleMessages<TrackRemovedEvent>
+    : IEventHandler<TrackRemovedEvent>
 {
     public async Task Handle(TrackRemovedEvent message)
     {

@@ -3,12 +3,13 @@ import { api } from '../lib/api';
 import { Room } from '../types';
 import { Link } from 'react-router-dom';
 import { Plus, Music } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from 'react-oidc-context';
 
 export default function RoomList() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [newRoomName, setNewRoomName] = useState('');
-  const { token } = useAuth();
+  const auth = useAuth();
+  const token = auth.user?.access_token;
 
   const loadRooms = async () => {
     const data = await api.get('/api/rooms?limit=50');
@@ -33,7 +34,7 @@ export default function RoomList() {
         </h1>
         {token && (
           <form onSubmit={createRoom} className="flex gap-2">
-            <input 
+            <input
               className="bg-neutral-800 border border-neutral-700 p-2 rounded text-sm w-64 focus:border-purple-500 outline-none"
               placeholder="New Room Name..."
               value={newRoomName}
