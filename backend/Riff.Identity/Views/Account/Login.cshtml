@@ -1,34 +1,39 @@
 @model LoginViewModel
 
-<div class="min-h-screen flex items-center justify-center bg-black">
-    <div class="w-full max-w-md p-8 bg-neutral-800 rounded-xl border border-neutral-700">
-        <h1 class="text-2xl font-bold mb-6 text-center text-purple-400">RIFF Sign In</h1>
-        
-        <!-- Это стандартная форма MVC -->
-        <form asp-route="Login" method="post" class="space-y-4">
-            <input type="hidden" asp-for="ReturnUrl" />
+<div class="w-full max-w-md p-10 bg-white rounded-2xl border border-gray-200 shadow-xl">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-black text-gray-900 mb-2">RIFF <span class="text-purple-600">ID</span></h1>
+        <p class="text-gray-500 text-sm">Вход в единый аккаунт</p>
+    </div>
+    
+    <form asp-route="Login" method="post" class="space-y-5">
+        <input type="hidden" asp-for="ReturnUrl" />
 
-            <div>
-                <input class="w-full p-3 bg-neutral-900 rounded border border-neutral-700 focus:border-purple-500 outline-none text-white" 
-                       placeholder="Username" 
-                       asp-for="Username" autofocus>
-            </div>
-            
-            <div>
-                <input type="password" class="w-full p-3 bg-neutral-900 rounded border border-neutral-700 focus:border-purple-500 outline-none text-white" 
-                       placeholder="Password" 
-                       asp-for="Password" autocomplete="off">
-            </div>
-
-            <button name="button" value="login" class="w-full p-3 bg-purple-600 hover:bg-purple-700 rounded font-bold transition text-white">
-                Sign In
-            </button>
-        </form>
-        
-        <div class="mt-4 text-center">
-            <a href="@Url.Action("Register", new { returnUrl = Model.ReturnUrl })" class="text-sm text-neutral-400 hover:text-white">
-                Need an account? Register
-            </a>
+        <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Username</label>
+            <input class="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none text-gray-900 transition placeholder-gray-400" 
+                   placeholder="Введите логин..." 
+                   asp-for="Username" autofocus>
         </div>
+        
+        <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Password</label>
+            <input type="password" class="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none text-gray-900 transition placeholder-gray-400" 
+                   placeholder="Введите пароль..." 
+                   asp-for="Password" autocomplete="off">
+        </div>
+
+        <div class="pt-2">
+            <button name="button" value="login" class="w-full py-4 bg-purple-600 hover:bg-purple-700 rounded-xl font-bold transition text-white shadow-lg shadow-purple-200 transform active:scale-95">
+                Войти
+            </button>
+        </div>
+    </form>
+    
+    <div class="mt-8 text-center pt-6 border-t border-gray-100">
+        <p class="text-sm text-gray-500">Нет аккаунта?</p>
+        <a href="#" class="text-purple-600 font-bold hover:underline">
+            Создать новый аккаунт
+        </a>
     </div>
 </div>

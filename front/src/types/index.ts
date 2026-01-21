@@ -19,6 +19,7 @@ export interface Track {
   score: number;
   addedById: string;
   roomId: string;
+  startedAt?: string; 
   status?: 'Pending' | 'Playing' | 'Paused' | 'Played'; 
 }
 

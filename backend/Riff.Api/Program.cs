@@ -11,6 +11,7 @@ using Riff.Api.Services.Interfaces;
 using Riff.Infrastructure.Extensions;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Events;
 using IRoomService = Riff.Api.Services.Interfaces.IRoomService;
 using ITrackService = Riff.Api.Services.Interfaces.ITrackService;
 using IUserService = Riff.Api.Services.Interfaces.IUserService;
@@ -85,6 +86,36 @@ try
 
     var app = builder.Build();
 
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.GetLevel = (httpContext, elapsed, ex) =>
+        {
+            if (ex != null || httpContext.Response.StatusCode >= 500)
+                return LogEventLevel.Error;
+
+            if (httpContext.Request.Path == "/health" ||
+                httpContext.Request.Path == "/ready" ||
+                httpContext.Request.Path == "/metrics")
+                return LogEventLevel.Verbose;
+
+            if (httpContext.Response.StatusCode >= 400)
+            {
+                return LogEventLevel.Warning;
+            }
+            
+            return LogEventLevel.Information;
+        };
+
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            var user = httpContext.User.Identity?.Name;
+            if (!string.IsNullOrEmpty(user))
+            {
+                diagnosticContext.Set("UserName", user);
+            }
+        };
+    });
+    
     app.UseExceptionHandler();
 
     if (app.Environment.IsDevelopment())

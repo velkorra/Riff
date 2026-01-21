@@ -13,8 +13,6 @@ public static class ObservabilityExtensions
         IConfiguration configuration,
         string serviceName)
     {
-        var zipkinEndpoint = configuration["Zipkin:Endpoint"] ?? "http://zipkin:9411/api/v2/spans";
-
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(serviceName))
             .WithMetrics(metrics => metrics

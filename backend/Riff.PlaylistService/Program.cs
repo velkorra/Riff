@@ -38,6 +38,11 @@ try
                 httpContext.Request.Path == "/metrics")
                 return LogEventLevel.Verbose;
 
+            if (httpContext.Response.StatusCode >= 400)
+            {
+                return LogEventLevel.Warning;
+            }
+            
             return LogEventLevel.Information;
         };
 

@@ -1,4 +1,6 @@
-﻿namespace Riff.Api.Contracts.Dto;
+﻿using Riff.Api.Contracts.Enums;
+
+namespace Riff.Api.Contracts.Dto;
 
 public record TrackResponse(
     Guid Id,
@@ -9,7 +11,9 @@ public record TrackResponse(
     int Score,
     DateTimeOffset CreatedAt,
     Guid AddedById,
-    Guid RoomId
+    Guid RoomId,
+    TrackStatus Status,
+    DateTimeOffset? StartedAt
 )
 {
     public List<LinkDto> Links { get; set; } = [];

@@ -8,21 +8,27 @@ export default function Login() {
     return <Navigate to="/" />;
   }
 
-  if (auth.isLoading) return <div className="text-white p-10">Loading auth...</div>;
-  if (auth.error) return <div className="text-red-500 p-10">Auth Error: {auth.error.message}</div>;
+  if (auth.isLoading) return <div className="p-10 text-gray-600">Загрузка...</div>;
+  if (auth.error) return <div className="text-red-600 p-10 bg-red-50">Ошибка авторизации: {auth.error.message}</div>;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
-      <div className="w-full max-w-md p-8 bg-neutral-800 rounded-xl border border-neutral-700 text-center">
-        <h1 className="text-2xl font-bold mb-6 text-purple-400">Welcome to RIFF</h1>
-        <p className="text-neutral-400 mb-8">Please login via our secure Identity Server to continue.</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-10 bg-white rounded-2xl border border-gray-200 shadow-xl text-center">
+        <div className="mb-8">
+            <h1 className="text-4xl font-black text-gray-900 mb-2">RIFF</h1>
+            <p className="text-gray-500">Музыкальная платформа для совместного прослушивания</p>
+        </div>
         
         <button 
           onClick={() => auth.signinRedirect()}
-          className="w-full p-4 bg-purple-600 hover:bg-purple-700 rounded font-bold text-white transition"
+          className="w-full py-4 px-6 bg-purple-600 hover:bg-purple-700 rounded-xl font-bold text-white transition transform active:scale-95 shadow-lg shadow-purple-200"
         >
-          Sign In via Riff Identity
+          Войти через Riff ID
         </button>
+        
+        <p className="mt-6 text-xs text-gray-400">
+            Используя сервис, вы соглашаетесь с правилами сообщества.
+        </p>
       </div>
     </div>
   );
